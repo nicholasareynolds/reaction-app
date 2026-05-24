@@ -2,7 +2,7 @@
   "name": "Reaction Time",
   "short_name": "Reaction",
   "description": "Test your reaction time and track your best scores",
-  "start_url": "/",
+  "start_url": "/reaction-app/",
   "display": "standalone",
   "background_color": "#0f0f13",
   "theme_color": "#0f0f13",
