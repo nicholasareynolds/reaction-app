@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reaction Time</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f0f13">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Reaction Time">
+  <link rel="apple-touch-icon" href="icons/icon-512.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f13;
+      color: #e8e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 20px 60px;
+    }
+
+    h1 {
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #5a5a72;
+      margin-bottom: 32px;
+    }
+
+    .instructions {
+      background: #16161e;
+      border: 1px solid #22222e;
+      border-radius: 12px;
+      padding: 16px 20px;
+      max-width: 460px;
+      width: 100%;
+      margin-bottom: 40px;
+      font-size: 0.82rem;
+      color: #7070a0;
+      line-height: 1.6;
+    }
+    .instructions strong { color: #a0a0c8; }
+
+    #main-btn {
+      width: clamp(200px, 55vw, 280px);
+      height: clamp(200px, 55vw, 280px);
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      transition: background 0.2s, color 0.2s, transform 0.1s, box-shadow 0.2s;
+      outline: none;
+      box-shadow: 0 0 0 8px #16161e, 0 0 0 10px #22222e;
+      margin-bottom: 16px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #main-btn:active { transform: scale(0.97); }
+
+    #main-btn.state-ready   { background: #3b82f6; color: #f0f8ff; }
+    #main-btn.state-wait    { background: #eab308; color: #1a1500; cursor: default; }
+    #main-btn.state-go      { background: #22c55e; color: #021208; }
+    #main-btn.state-stopped { background: #ef4444; color: #fff0f0; cursor: default; }
+
+    #main-btn.state-go {
+      box-shadow: 0 0 0 8px #16161e, 0 0 0 10px #22222e, 0 0 40px rgba(34,197,94,0.3);
+    }
+
+    #sub-label {
+      font-size: 0.78rem;
+      color: #44445a;
+      min-height: 1.2em;
+      margin-bottom: 32px;
+      letter-spacing: 0.05em;
+    }
+
+    #btn-reset {
+      background: transparent;
+      border: 1px solid #2a2a3a;
+      color: #44445a;
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: color 0.15s, border-color 0.15s;
+      margin-bottom: 48px;
+    }
+    #btn-reset:hover { color: #8888aa; border-color: #44445a; }
+
+    #board-section { width: 100%; max-width: 560px; }
+
+    #board-section h2 {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #44445a;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #1e1e28;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #board-section h2 span { font-weight: 400; }
+
+    .board-header {
+      display: grid;
+      grid-template-columns: 28px 90px 1fr 130px;
+      gap: 10px;
+      padding: 0 14px 8px;
+      font-size: 0.65rem;
+      color: #33334a;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    #board-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .board-row {
+      display: grid;
+      grid-template-columns: 28px 90px 1fr 130px;
+      align-items: center;
+      gap: 10px;
+      background: #16161e;
+      border: 1px solid #22222e;
+      border-radius: 9px;
+      padding: 10px 14px;
+      animation: slide-in 0.2s ease;
+    }
+    .board-row.rank-1 { border-color: #3b3b10; background: #1a1a10; }
+    .board-row.rank-2 { border-color: #2a2a2a; }
+    .board-row.rank-3 { border-color: #2a1f18; }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .rank {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #33334a;
+      text-align: center;
+    }
+    .rank-1 .rank { color: #eab308; }
+    .rank-2 .rank { color: #94a3b8; }
+    .rank-3 .rank { color: #cd7c4a; }
+
+    .rt {
+      font-variant-numeric: tabular-nums;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #a8f0c6;
+      letter-spacing: 0.02em;
+    }
+    .rank-1 .rt { color: #eab308; }
+
+    .label-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid transparent;
+      color: #c0c0d8;
+      font-size: 0.85rem;
+      font-family: inherit;
+      padding: 2px 4px;
+      border-radius: 4px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .label-input::placeholder { color: #2e2e3e; font-style: italic; }
+    .label-input:hover  { background: #1e1e2a; border-color: #33334a; }
+    .label-input:focus  { background: #1e1e2a; border-color: #3b82f6; color: #e8e8ff; }
+
+    .ts {
+      font-size: 0.7rem;
+      color: #33334a;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    #empty-board {
+      text-align: center;
+      color: #2a2a3a;
+      font-size: 0.82rem;
+      padding: 28px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Reaction Time</h1>
+
+  <div class="instructions">
+    <strong>How to play:</strong> Press <strong>START</strong>. Wait for the button to turn green and say <strong>STOP</strong> — then click it as fast as you can. Your reaction time will be logged in the leaderboard. Add your name to claim your score. Best of 10 shown.
+  </div>
+
+  <button id="main-btn" class="state-ready">START</button>
+  <div id="sub-label"></div>
+  <button id="btn-reset">Reset</button>
+
+  <section id="board-section">
+    <h2>Leaderboard <span id="board-count"></span></h2>
+    <div class="board-header">
+      <div>#</div>
+      <div>Time</div>
+      <div>Name</div>
+      <div style="text-align:right">When</div>
+    </div>
+    <div id="board-list">
+      <div id="empty-board">No times recorded yet — take a shot!</div>
+    </div>
+  </section>
+
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+
+    const btn        = document.getElementById('main-btn');
+    const subLabel   = document.getElementById('sub-label');
+    const btnReset   = document.getElementById('btn-reset');
+    const boardList  = document.getElementById('board-list');
+    const boardCount = document.getElementById('board-count');
+
+    const STORAGE_KEY = 'reaction_leaderboard';
+    const MAX_ENTRIES = 10;
+
+    let state = 'ready';
+    let waitTimer = null;
+    let goTime = 0;
+
+    function setState(s, label, sublabel) {
+      state = s;
+      btn.className = 'state-' + s;
+      btn.textContent = label;
+      subLabel.textContent = sublabel || '';
+    }
+
+    function handleClick() {
+      if (state === 'ready') {
+        setState('wait', 'WAIT', 'hold on…');
+        const delay = 1500 + Math.random() * 13500; // 1.5–15s
+        waitTimer = setTimeout(() => {
+          goTime = performance.now();
+          setState('go', 'STOP', 'click now!');
+        }, delay);
+
+      } else if (state === 'wait') {
+        clearTimeout(waitTimer);
+        subLabel.style.color = '#ef4444';
+        setState('stopped', 'TOO EARLY', 'wait for green next time');
+
+      } else if (state === 'go') {
+        const ms = Math.round(performance.now() - goTime);
+        setState('stopped', fmtRT(ms), 'click reset to go again');
+        saveScore(ms);
+        renderBoard();
+
+      }
+      // state === 'stopped': no-op, use reset button
+    }
+
+    function reset() {
+      clearTimeout(waitTimer);
+      subLabel.style.color = '';
+      setState('ready', 'START', '');
+    }
+
+    btn.addEventListener('click', handleClick);
+    btnReset.addEventListener('click', reset);
+
+    function fmtRT(ms) {
+      return ms < 1000 ? ms + ' ms' : (ms / 1000).toFixed(2) + ' s';
+    }
+
+    function fmtTS(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function loadScores() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+      catch { return []; }
+    }
+
+    function saveScore(ms) {
+      const scores = loadScores();
+      scores.push({ ms, ts: new Date().toISOString(), label: '' });
+      scores.sort((a, b) => a.ms - b.ms);
+      scores.splice(MAX_ENTRIES);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+    }
+
+    function persistLabel(index, value) {
+      const scores = loadScores();
+      if (scores[index]) {
+        scores[index].label = value;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+      }
+    }
+
+    function escHtml(s) {
+      return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+
+    function renderBoard() {
+      const scores = loadScores();
+
+      if (scores.length === 0) {
+        boardList.innerHTML = '<div id="empty-board">No times recorded yet — take a shot!</div>';
+        boardCount.textContent = '';
+        return;
+      }
+
+      boardCount.textContent = `${scores.length} / ${MAX_ENTRIES}`;
+      boardList.innerHTML = '';
+
+      const medals = ['🥇', '🥈', '🥉'];
+      scores.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.className = ['board-row', i < 3 ? `rank-${i + 1}` : ''].join(' ').trim();
+        row.innerHTML = `
+          <div class="rank">${i < 3 ? medals[i] : i + 1}</div>
+          <div class="rt">${fmtRT(s.ms)}</div>
+          <input class="label-input" type="text" placeholder="add name…"
+                 value="${escHtml(s.label)}" spellcheck="false" data-idx="${i}">
+          <div class="ts">${fmtTS(s.ts)}</div>
+        `;
+        boardList.appendChild(row);
+      });
+
+      boardList.querySelectorAll('.label-input').forEach(input => {
+        input.addEventListener('change', e => {
+          persistLabel(parseInt(e.target.dataset.idx), e.target.value);
+        });
+      });
+    }
+
+    setState('ready', 'START', '');
+    renderBoard();
+  </script>
+</body>
+</html>
